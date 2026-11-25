@@ -46,6 +46,8 @@ npx aws-cdk synth                           # CloudFormation template
 npx aws-cdk deploy -c stage=dev --profile <your-profile>
 ```
 
+Cost guardrail first (once per account): `npx aws-cdk deploy CornerShop-guardrails -c alertEmail=<you> -c budgetUsd=20`.
+
 After deploying: put your Meta app secret in the `WhatsAppSecret` (`app_secret`; `verify_token` is generated), register
 the shop with `scripts/register_shop.py`, point the Meta webhook to the `WebhookUrl` output, or test without Meta using
 `scripts/send_test_webhook.py`.
