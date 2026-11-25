@@ -8,6 +8,7 @@ from aws_cdk import aws_apigatewayv2 as apigw
 from aws_cdk import aws_apigatewayv2_integrations as integrations
 from aws_cdk import aws_cloudwatch as cw
 from aws_cdk import aws_dynamodb as ddb
+from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
@@ -71,12 +72,15 @@ class FoundationStack(Stack):
         )
         dispatcher.add_event_source(sources.SqsEventSource(inbox, batch_size=10, report_batch_item_failures=True))
 
-        # ingest: read/write the table, send to the queue, read the secret
-        table.grant_read_write_data(ingest)
+        # least privilege: ingest reads routing + writes dedup markers, sends to the queue, reads the secret
+        def rows(actions, prefixes):
+            return iam.PolicyStatement(actions=actions, resources=[table.table_arn], conditions={
+                "ForAllValues:StringLike": {"dynamodb:LeadingKeys": [p + "*" for p in prefixes]}})
+        ingest.add_to_role_policy(rows(["dynamodb:GetItem"], ["PHONE#"]))      # routing lookup only
+        ingest.add_to_role_policy(rows(["dynamodb:PutItem"], ["DEDUP#"]))      # dedup markers only
         inbox.grant_send_messages(ingest)
         whatsapp.grant_read(ingest)
-
-        table.grant_write_data(dispatcher)
+        dispatcher.add_to_role_policy(rows(["dynamodb:PutItem"], ["SHOP#"]))   # writes shop messages only
 
         api = apigw.HttpApi(self, "Webhook", description=f"corner-shop-ai {stage} WhatsApp webhook")
         hook = integrations.HttpLambdaIntegration("IngestIntegration", ingest)
