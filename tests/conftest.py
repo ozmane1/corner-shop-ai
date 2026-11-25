@@ -27,9 +27,11 @@ def aws():
         table.put_item(Item={"pk": "PHONE#111", "sk": "SHOP", "shop_id": "casa-01"})
         os.environ["QUEUE_URL"] = q
         from ingest import handler as ingest
+        from dispatcher import handler as dispatcher
         ingest._ddb = ingest._sqs = ingest._secrets = None
         ingest._secret_cache.clear()
         ingest.QUEUE_URL = q
+        dispatcher._table = None
         yield {"table": table, "queue": q}
 
 

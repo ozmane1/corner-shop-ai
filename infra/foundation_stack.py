@@ -9,6 +9,7 @@ from aws_cdk import aws_apigatewayv2_integrations as integrations
 from aws_cdk import aws_cloudwatch as cw
 from aws_cdk import aws_dynamodb as ddb
 from aws_cdk import aws_lambda as lambda_
+from aws_cdk import aws_lambda_event_sources as sources
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_secretsmanager as secrets
 from aws_cdk import aws_sqs as sqs
@@ -64,10 +65,18 @@ class FoundationStack(Stack):
             environment={"TABLE_NAME": table.table_name, "QUEUE_URL": inbox.queue_url, "SECRET_ID": whatsapp.secret_arn},
             **common,
         )
+        dispatcher = lambda_.Function(
+            self, "Dispatcher", handler="dispatcher.handler.handler", timeout=Duration.seconds(30), log_group=log_group("Dispatcher"),
+            environment={"TABLE_NAME": table.table_name}, **common,
+        )
+        dispatcher.add_event_source(sources.SqsEventSource(inbox, batch_size=10, report_batch_item_failures=True))
+
         # ingest: read/write the table, send to the queue, read the secret
         table.grant_read_write_data(ingest)
         inbox.grant_send_messages(ingest)
         whatsapp.grant_read(ingest)
+
+        table.grant_write_data(dispatcher)
 
         api = apigw.HttpApi(self, "Webhook", description=f"corner-shop-ai {stage} WhatsApp webhook")
         hook = integrations.HttpLambdaIntegration("IngestIntegration", ingest)

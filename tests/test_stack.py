@@ -30,3 +30,8 @@ def test_webhook_route_exists(tpl):
     _, t = tpl
     t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "POST /webhook"})
     t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "GET /webhook"})
+
+
+def test_dispatcher_reports_partial_batch_failures(tpl):
+    _, t = tpl
+    t.has_resource_properties("AWS::Lambda::EventSourceMapping", {"FunctionResponseTypes": ["ReportBatchItemFailures"]})
