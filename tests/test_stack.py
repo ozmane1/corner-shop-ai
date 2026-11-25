@@ -18,3 +18,9 @@ def test_table_has_backups_and_ttl(tpl):
         "TimeToLiveSpecification": {"AttributeName": "ttl", "Enabled": True},
         "Replicas": [Match.object_like({"PointInTimeRecoverySpecification": {"PointInTimeRecoveryEnabled": True},
                                         "DeletionProtectionEnabled": stage == "prod"})]})
+
+
+def test_queue_is_fifo_with_dead_letter_queue(tpl):
+    _, t = tpl
+    t.resource_count_is("AWS::SQS::Queue", 2)
+    t.has_resource_properties("AWS::SQS::Queue", {"FifoQueue": True, "RedrivePolicy": {"maxReceiveCount": 3, "deadLetterTargetArn": Match.any_value()}})
