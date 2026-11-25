@@ -1,0 +1,13 @@
+[project]
+name = "corner-shop-ai"
+version = "0.2.0"
+description = "Production AI assistant for a real corner shop, built in public (Oz builds AI). Part 2: the foundation."
+requires-python = ">=3.11"
+dependencies = ["aws-cdk-lib>=2.220", "constructs>=10.4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "boto3>=1.40", "moto[dynamodb,sqs,secretsmanager]>=5.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "src", "tests"]
