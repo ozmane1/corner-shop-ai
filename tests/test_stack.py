@@ -12,6 +12,9 @@ def tpl(request):
     return request.param, Template.from_stack(FoundationStack(app, "T", stage=request.param))
 
 
-def test_stack_synthesizes_for_each_stage(tpl):
+def test_table_has_backups_and_ttl(tpl):
     stage, t = tpl
-    assert t.to_json() is not None
+    t.has_resource_properties("AWS::DynamoDB::GlobalTable", {
+        "TimeToLiveSpecification": {"AttributeName": "ttl", "Enabled": True},
+        "Replicas": [Match.object_like({"PointInTimeRecoverySpecification": {"PointInTimeRecoveryEnabled": True},
+                                        "DeletionProtectionEnabled": stage == "prod"})]})
