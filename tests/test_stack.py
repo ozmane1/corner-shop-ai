@@ -24,3 +24,9 @@ def test_queue_is_fifo_with_dead_letter_queue(tpl):
     _, t = tpl
     t.resource_count_is("AWS::SQS::Queue", 2)
     t.has_resource_properties("AWS::SQS::Queue", {"FifoQueue": True, "RedrivePolicy": {"maxReceiveCount": 3, "deadLetterTargetArn": Match.any_value()}})
+
+
+def test_webhook_route_exists(tpl):
+    _, t = tpl
+    t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "POST /webhook"})
+    t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "GET /webhook"})
