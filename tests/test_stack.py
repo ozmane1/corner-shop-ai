@@ -7,9 +7,11 @@ from infra.foundation_stack import FoundationStack
 
 
 @pytest.fixture(scope="module", params=["dev", "prod"])
-def tpl(request):
+def tpl(request, tmp_path_factory):
+    code = tmp_path_factory.mktemp("agent")            # a tiny stand-in for build/agent
+    (code / "main.py").write_text("print('agent')\n")
     app = cdk.App()
-    return request.param, Template.from_stack(FoundationStack(app, "T", stage=request.param))
+    return request.param, Template.from_stack(FoundationStack(app, "T", stage=request.param, agent_code=str(code)))
 
 
 def test_queue_is_fifo_with_dead_letter_queue(tpl):
@@ -46,3 +48,16 @@ def test_webhook_route_exists(tpl):
     _, t = tpl
     t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "POST /webhook"})
     t.has_resource_properties("AWS::ApiGatewayV2::Route", {"RouteKey": "GET /webhook"})
+
+
+def test_agent_runs_on_agentcore_with_only_the_haiku_eu_profile(tpl):
+    stage, t = tpl
+    t.has_resource_properties("AWS::BedrockAgentCore::Runtime", {
+        "AgentRuntimeName": f"corner_shop_{stage}",
+        "AgentRuntimeArtifact": {"CodeConfiguration": {"EntryPoint": ["main.py"], "Runtime": "PYTHON_3_13"}}})
+    statements = [s for p in t.find_resources("AWS::IAM::Policy").values()
+                  for s in p["Properties"]["PolicyDocument"]["Statement"]
+                  if "bedrock:InvokeModel" in (s["Action"] if isinstance(s["Action"], list) else [s["Action"]])]
+    assert len(statements) == 1                                       # only the agent may call a model
+    text = str(statements[0]["Resource"])
+    assert "inference-profile/eu.anthropic.claude-haiku-5-5" in text and "foundation-model/anthropic.claude-haiku-5-5" in text

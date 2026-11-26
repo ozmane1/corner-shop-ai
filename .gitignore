@@ -6,3 +6,4 @@ cdk.out/
 .env
 *.pem
 *.egg-info/
+build/
