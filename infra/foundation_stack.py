@@ -1,7 +1,7 @@
 """Part 2 · The foundation: everything the AI will stand on, as code.
 
 WhatsApp -> API Gateway (HTTP API) -> Ingest Lambda -> SQS FIFO (+ DLQ) -> Dispatcher Lambda -> DynamoDB
-Secrets in Secrets Manager. Least-privilege IAM (CDK grants). No AI yet: Part 3 plugs the agent into the dispatcher.
+Secrets in Secrets Manager. Least-privilege IAM. Part 3: the dispatcher asks the agent on AgentCore Runtime and replies.
 """
 from aws_cdk import CfnOutput, Duration, RemovalPolicy, Stack
 from aws_cdk import aws_apigatewayv2 as apigw
@@ -41,7 +41,7 @@ class FoundationStack(Stack):
                         encryption=sqs.QueueEncryption.SQS_MANAGED, enforce_ssl=True)
         inbox = sqs.Queue(
             self, "Inbox", fifo=True, content_based_deduplication=False,
-            visibility_timeout=Duration.seconds(180),          # 6x the dispatcher timeout
+            visibility_timeout=Duration.seconds(360),          # 6x the dispatcher timeout
             encryption=sqs.QueueEncryption.SQS_MANAGED, enforce_ssl=True,
             dead_letter_queue=sqs.DeadLetterQueue(queue=dlq, max_receive_count=3),
         )
@@ -68,11 +68,15 @@ class FoundationStack(Stack):
             environment={"TABLE_NAME": table.table_name, "QUEUE_URL": inbox.queue_url, "SECRET_ID": whatsapp.secret_arn},
             **common,
         )
+        agent = AgentRuntime(self, "Agent", stage=stage, code_dir=agent_code)   # Part 3: the first agent
+
         dispatcher = lambda_.Function(
-            self, "Dispatcher", handler="dispatcher.handler.handler", timeout=Duration.seconds(30), log_group=log_group("Dispatcher"),
-            environment={"TABLE_NAME": table.table_name}, **common,
+            self, "Dispatcher", handler="dispatcher.handler.handler", timeout=Duration.seconds(60), log_group=log_group("Dispatcher"),
+            environment={"TABLE_NAME": table.table_name, "AGENT_RUNTIME_ARN": agent.arn, "SECRET_ID": whatsapp.secret_arn},
+            **common,
         )
-        dispatcher.add_event_source(sources.SqsEventSource(inbox, batch_size=10, report_batch_item_failures=True))
+        # ~5 s per message with the agent: small batches keep a batch well inside the 60 s timeout
+        dispatcher.add_event_source(sources.SqsEventSource(inbox, batch_size=5, report_batch_item_failures=True))
 
         # least privilege: ingest reads routing + writes dedup markers, sends to the queue, reads the secret
         def rows(actions, prefixes):
@@ -82,13 +86,14 @@ class FoundationStack(Stack):
         ingest.add_to_role_policy(rows(["dynamodb:PutItem"], ["DEDUP#"]))      # dedup markers only
         inbox.grant_send_messages(ingest)
         whatsapp.grant_read(ingest)
-        dispatcher.add_to_role_policy(rows(["dynamodb:PutItem"], ["SHOP#"]))   # writes shop messages only
+        dispatcher.add_to_role_policy(rows(["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"], ["SHOP#"]))  # shop rows only
+        dispatcher.add_to_role_policy(iam.PolicyStatement(                     # may call this one agent, nothing else
+            actions=["bedrock-agentcore:InvokeAgentRuntime"], resources=[agent.arn, f"{agent.arn}/*"]))
+        whatsapp.grant_read(dispatcher)                                         # the WhatsApp token to reply
 
         api = apigw.HttpApi(self, "Webhook", description=f"corner-shop-ai {stage} WhatsApp webhook")
         hook = integrations.HttpLambdaIntegration("IngestIntegration", ingest)
         api.add_routes(path="/webhook", methods=[apigw.HttpMethod.GET, apigw.HttpMethod.POST], integration=hook)
-
-        agent = AgentRuntime(self, "Agent", stage=stage, code_dir=agent_code)   # Part 3: the first agent
 
         cw.Alarm(self, "DLQNotEmpty", metric=dlq.metric_approximate_number_of_messages_visible(period=Duration.minutes(5)),
                  threshold=1, evaluation_periods=1, alarm_description="A message failed 3 times: look at the DLQ")

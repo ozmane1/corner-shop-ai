@@ -31,7 +31,8 @@ def aws():
         ingest._ddb = ingest._sqs = ingest._secrets = None
         ingest._secret_cache.clear()
         ingest.QUEUE_URL = q
-        dispatcher._table = None
+        dispatcher._table = dispatcher._agent = dispatcher._secrets = None
+        dispatcher._secret_cache.clear()
         yield {"table": table, "queue": q}
 
 

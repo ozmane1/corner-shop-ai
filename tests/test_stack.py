@@ -1,4 +1,6 @@
 """The infrastructure itself is tested: the safety properties the video talks about must stay true."""
+import json
+
 import aws_cdk as cdk
 import pytest
 from aws_cdk.assertions import Match, Template
@@ -61,3 +63,11 @@ def test_agent_runs_on_agentcore_with_only_the_haiku_eu_profile(tpl):
     assert len(statements) == 1                                       # only the agent may call a model
     text = str(statements[0]["Resource"])
     assert "inference-profile/eu.anthropic.claude-haiku-5-5" in text and "foundation-model/anthropic.claude-haiku-5-5" in text
+
+
+def test_dispatcher_may_call_only_its_agent(tpl):
+    _, t = tpl
+    statements = [s for p in t.find_resources("AWS::IAM::Policy").values()
+                  for s in p["Properties"]["PolicyDocument"]["Statement"]
+                  if "bedrock-agentcore:InvokeAgentRuntime" in str(s["Action"])]
+    assert len(statements) == 1 and "*" not in json.dumps(statements[0]["Resource"]).replace("/*", "")
