@@ -1,13 +1,14 @@
 [project]
 name = "corner-shop-ai"
-version = "0.2.0"
-description = "Production AI assistant for a real corner shop, built in public (Oz builds AI). Part 2: the foundation."
+version = "0.3.0"
+description = "Production AI assistant for a real corner shop, built in public (Oz builds AI). Part 3: the first agent."
 requires-python = ">=3.11"
 dependencies = ["aws-cdk-lib>=2.220", "constructs>=10.4"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "boto3>=1.40", "moto[dynamodb,sqs,secretsmanager]>=5.1"]
+agent = ["strands-agents>=1.67", "bedrock-agentcore>=1.28"]
+dev = ["pytest>=8", "boto3>=1.40", "moto[dynamodb,sqs,secretsmanager]>=5.1", "strands-agents>=1.67", "bedrock-agentcore>=1.28"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "src", "tests"]
+pythonpath = [".", "src", "tests", "agent"]

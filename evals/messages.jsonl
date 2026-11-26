@@ -1,0 +1,20 @@
+{"text": "sold 3 bread", "intent": "sale", "items": {"bread": 3}, "language": "en"}
+{"text": "vendu 2 lait", "intent": "sale", "items": {"lait": 2}, "language": "fr"}
+{"text": "vendu 2 lait et 1 sucre", "intent": "sale", "items": {"lait": 2, "sucre": 1}, "language": "fr"}
+{"text": "Sold 5 eggs, 2 yogurts and a coke", "intent": "sale", "items": {"egg": 5, "yogurt": 2, "coke": 1}, "language": "en"}
+{"text": "j'ai vendu 10 pains ce matin", "intent": "sale", "items": {"pain": 10}, "language": "fr"}
+{"text": "vendu 1kg de tomates", "intent": "sale", "items": {"tomate": 1}, "language": "fr"}
+{"text": "2 packs of water sold", "intent": "sale", "items": {"water": 2}, "language": "en"}
+{"text": "received 24 milk", "intent": "restock", "items": {"milk": 24}, "language": "en"}
+{"text": "livraison: 30 yaourts et 12 huile", "intent": "restock", "items": {"yaourt": 30, "huile": 12}, "language": "fr"}
+{"text": "the supplier brought 50 bread", "intent": "restock", "items": {"bread": 50}, "language": "en"}
+{"text": "reçu 6 bouteilles de gaz", "intent": "restock", "items": {"gaz": 6}, "language": "fr"}
+{"text": "Karim owes 40 dh", "intent": "credit", "customer": "Karim", "amount_mad": 40, "language": "en"}
+{"text": "Fatima a pris 2 lait à crédit, 14 dh", "intent": "credit", "customer": "Fatima", "amount_mad": 14, "language": "fr"}
+{"text": "Youssef paid back 20 dh", "intent": "credit", "customer": "Youssef", "amount_mad": -20, "language": "en"}
+{"text": "Karim a remboursé 15dh", "intent": "credit", "customer": "Karim", "amount_mad": -15, "language": "fr"}
+{"text": "how much milk is left?", "intent": "question", "language": "en"}
+{"text": "combien j'ai vendu aujourd'hui ?", "intent": "question", "language": "fr"}
+{"text": "who owes me money?", "intent": "question", "language": "en"}
+{"text": "salam, merci!", "intent": "other", "language": "fr"}
+{"text": "sold bread", "intent": "sale", "language": "en", "asks": true}
