@@ -16,11 +16,13 @@ from aws_cdk import aws_secretsmanager as secrets
 from aws_cdk import aws_sqs as sqs
 from constructs import Construct
 
+from infra.agent_runtime import AgentRuntime
+
 SRC = "src"
 
 
 class FoundationStack(Stack):
-    def __init__(self, scope: Construct, cid: str, *, stage: str, **kw) -> None:
+    def __init__(self, scope: Construct, cid: str, *, stage: str, agent_code: str = "build/agent", **kw) -> None:
         super().__init__(scope, cid, **kw)
         prod = stage == "prod"
 
@@ -86,6 +88,8 @@ class FoundationStack(Stack):
         hook = integrations.HttpLambdaIntegration("IngestIntegration", ingest)
         api.add_routes(path="/webhook", methods=[apigw.HttpMethod.GET, apigw.HttpMethod.POST], integration=hook)
 
+        agent = AgentRuntime(self, "Agent", stage=stage, code_dir=agent_code)   # Part 3: the first agent
+
         cw.Alarm(self, "DLQNotEmpty", metric=dlq.metric_approximate_number_of_messages_visible(period=Duration.minutes(5)),
                  threshold=1, evaluation_periods=1, alarm_description="A message failed 3 times: look at the DLQ")
 
@@ -93,3 +97,4 @@ class FoundationStack(Stack):
         CfnOutput(self, "TableName", value=table.table_name)
         CfnOutput(self, "SecretArn", value=whatsapp.secret_arn)
         CfnOutput(self, "DLQUrl", value=dlq.queue_url)
+        CfnOutput(self, "AgentRuntimeArn", value=agent.arn)
