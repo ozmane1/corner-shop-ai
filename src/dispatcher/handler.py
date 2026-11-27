@@ -21,7 +21,7 @@ from shared import keys
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
-GRAPH = "https://graph.facebook.com/v23.0"
+GRAPH = "https://graph.facebook.com/v27.0"           # same version as the webhook subscription in the Meta app
 _table = _agent = _secrets = None
 _secret_cache: dict = {}
 
