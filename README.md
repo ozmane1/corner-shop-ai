@@ -86,6 +86,10 @@ talks to the agent directly, and `scripts/eval_agent.py` scores it.
 
 Next: **Part 4 · Tools via MCP** (it starts doing things: stock and sales, through AgentCore Gateway).
 
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md): what the assistant stores, why, where, and how to ask for deletion.
+
 ## License
 
 MIT
